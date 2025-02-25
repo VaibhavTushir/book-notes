@@ -1,0 +1,44 @@
+# Book Notes Project Planning
+
+## User Features
+- **Login**
+- **Register**
+- **Reset Password**: Functionality using a key question
+
+### User Properties:
+- id
+- username
+- email
+- password
+
+## Book Features
+- **Add a Book**
+- **Remove a Book**
+- **Sort Books**
+
+### Book Properties:
+- id
+- title
+- date read
+- rating
+- review/notes
+
+## Additional Features
+- **Fetch Book Cover**: Use API to fetch book cover
+- **Grid Design**: Grid-like design in frontend
+- **View Reviews and Ratings**:
+  - Search for the book in the database
+  - Search for users in the database
+
+## Frontend Pages
+
+### Home Page:
+- **Login/Register**
+- **See All Users**: Button to view all users
+- **See All Books**: Button to view all books
+- **Search for Book**: Input field to search for books
+
+### Logged-in User:
+- **Add Book Page**
+- **View All Books**: Show all books of the current user with sorting options
+- **Edit Book Data**: Edit any book data

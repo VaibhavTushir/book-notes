@@ -1,0 +1,19 @@
+{
+  "name": "book-notes",
+  "version": "1.0.0",
+  "description": "A web app to store info regarding read books",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/VaibhavTushir/book-notes.git"
+  },
+  "author": "VaibhavTushir",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/VaibhavTushir/book-notes/issues"
+  },
+  "homepage": "https://github.com/VaibhavTushir/book-notes#readme"
+}
