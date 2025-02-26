@@ -82,6 +82,6 @@ This project is open-source and available under the **MIT License**.
 
 ## 💡 Author
 👨‍💻 **Vaibhav Tushir**  
-📧 [Your Email]  
-🔗 [Your LinkedIn/GitHub Profile]
+📧 vaibhavtushir2006@gmail.com  
+🔗 www.linkedin.com/in/vaibhav-tushir-648b62286
 
