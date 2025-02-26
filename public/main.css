@@ -1,0 +1,24 @@
+html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    background-color: whitesmoke; /* Ensures the entire page is black */
+}
+
+#container {
+    background-color: whitesmoke;
+    color: black;
+    /* Ensures text is visible */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    /* Full viewport height */
+    margin: 0;
+    
+}
+h1{
+    align-self: flex-start;
+    font-size: 5rem;
+    font-family:'Playfair Display', serif;
+}

@@ -34,21 +34,53 @@ const db = new pg.Client({
   host: process.env.PG_HOST,
   database: process.env.PG_DATABASE,
   password: process.env.PG_PASSWORD,
-  port: process.env.PG_PORT,
+  port: parseInt(process.env.PG_PORT),
 });
 db.connect();
 
 // ---------------- ROUTES ----------------
-//To be modified
+async function getBooks(type, parameter) {
+  let result;
+  switch (type) {
+    case "random":
+      result = await db.query(
+        "SELECT * FROM user_books ORDER BY random() LIMIT 10"
+      );
+      return result.rows;
+      break;
+    case "id":
+      result = await db.query("SELECT * FROM user_books WHERE id =$1", [
+        parameter,
+      ]);
+      return result.rows;
+
+      break;
+    case "bookName":
+      result = await db.query(
+        "SELECT * FROM user_books WHERE book_name ILIKE  '%' || $1 || '%' ",
+        [parameter]
+      );
+      return result.rows;
+
+      break;
+    default:
+      break;
+  }
+}
 
 // Home route
-app.get("/", (req, res) => {
-  res.render("home.ejs");
-});
-
-// Login page
-app.get("/login", (req, res) => {
-  res.render("login.ejs");
+app.get("/", async (req, res) => {
+  if (req.isAuthenticated()) {
+    res.render("home.ejs", {
+      username: req.user.username,
+      user_books: await getBooks("id", req.user.id),
+      random_books: await getBooks("random"),
+    });
+  } else {
+    res.render("home.ejs", {
+      random_books: getBooks("random"),
+    });
+  }
 });
 
 // Registration page
@@ -56,6 +88,32 @@ app.get("/register", (req, res) => {
   res.render("register.ejs");
 });
 
+// Login page
+app.get("/login", (req, res) => {
+  res.render("login.ejs");
+});
+
+app.post(
+  "/login",
+  passport.authenticate("local", {
+    successRedirect: "/",
+    failureRedirect: "/",
+  })
+);
+app.get(
+  "/auth/google",
+  passport.authenticate("google", {
+    scope: ["profile", "email"],
+  })
+);
+
+app.get(
+  "/auth/google/secrets",
+  passport.authenticate("google", {
+    successRedirect: "/",
+    failureRedirect: "/",
+  })
+);
 // Logout route
 app.get("/logout", (req, res) => {
   req.logout(function (err) {
@@ -66,6 +124,133 @@ app.get("/logout", (req, res) => {
   });
 });
 
+app.post("/search", async (req, res) => {
+  const bookName = req.body.bookName;
+  const result = getBooks("bookName", bookName);
+  if (result.length === 0) {
+    res.render("search.ejs", {
+      booksFound: false,
+    });
+  } else {
+    res.render("search.ejs", {
+      booksFound: true,
+      books: result,
+    });
+  }
+});
+
+app.get("/newBook", (req, res) => {
+  if (req.isAuthenticated()) {
+    return res.render("new.ejs", {
+      case: "new",
+    });
+  }
+  return res.redirect("/");
+});
+
+app.post("/newBook", async (req, res) => {
+  if (!req.isAuthenticated()) {
+    return res.redirect("/");
+  }
+  let img = "";
+  try {
+    img = await fetchImage(
+      `https://covers.openlibrary.org/b/${req.body.key}/${req.body.value}-M.jpg`
+    );
+  } catch (error) {
+    console.log(error);
+  }
+
+  try {
+    await db.query(
+      "INSERT INTO user_books (id,book_name, rating, review, img, author) VALUES ($1, $2, $3, $4, $5, $6)",
+      [
+        req.user.id,
+        req.body.book_name,
+        req.body.rating,
+        req.body.review,
+        img,
+        req.body.author,
+      ]
+    );
+  } catch (error) {
+    console.log(error);
+  }
+  res.redirect("/");
+});
+
+app.get("/edit/:bookId", async (req, res) => {
+  if (!req.isAuthenticated()) {
+    return res.redirect("/");
+  }
+  const bookId = req.params.bookId;
+  try {
+    const result = await db.query(
+      "SELECT * FROM user_books  WHERE bookid=$1 AND id=$2",
+      [bookId, req.user.id]
+    );
+    if (result.rows.length === 0) {
+      res.redirect("/");
+    } else {
+      res.render("new.ejs", {
+        case: "edit",
+        book: result.rows[0],
+      });
+    }
+  } catch (error) {
+    console.log(error);
+  }
+});
+app.post("/edit/", async (req, res) => {
+  if (!req.isAuthenticated()) {
+    return res.redirect("/");
+  }
+
+  let img = "";
+  try {
+    img = await fetchImage(
+      `https://covers.openlibrary.org/b/${req.body.key}/${req.body.value}-M.jpg`
+    );
+  } catch (error) {
+    console.log(error);
+  }
+
+  try {
+    await db.query(
+      "UPDATE user_books SET  book_name=$1, rating=$2, review=$3, img=$4, author =$5 WHERE bookId=$6 AND id=$7",
+      [
+        req.body.book_name,
+        req.body.rating,
+        req.body.review,
+        img,
+        req.body.author,
+        req.body.bookId,
+        req.user.id,
+      ]
+    );
+  } catch (error) {
+    console.log(error);
+  }
+  res.redirect("/");
+});
+
+app.get("/delete/:bookId", async (req, res) => {
+  if (!req.isAuthenticated()) {
+    return res.redirect("/");
+  } else {
+    userId = req.user.id;
+    bookId = req.params.bookId;
+    try {
+      await db.query("DELETE FROM user_books WHERE id=$1 AND bookid=$2", [
+        userId,
+        bookId,
+      ]);
+    } catch (error) {
+      console.log(error);
+    }
+    res.redirect("/");
+  }
+});
 //Register
 app.post("/register", async (req, res) => {
   const username = req.body.username;
@@ -84,7 +269,7 @@ app.post("/register", async (req, res) => {
     // Hash the password before storing it
     let hash;
     try {
-      hash = await bcrypt.hash(password, saltRounds);
+      hash = bcrypt.hash(password, parseInt(saltRounds));
     } catch (error) {
       console.error("Error hashing password:", error);
       return res.status(500).send("Internal Server Error");
@@ -118,16 +303,15 @@ passport.use(
   "local",
   new Strategy(
     {
-      usernameField: "identifier",
+      usernameField: "email",
       passwordField: "password",
       passReqToCallback: true,
     },
-    async (req, identifier, password, cb) => {
+    async (req, email, password, cb) => {
       try {
-        const result = await db.query(
-          "SELECT * FROM users WHERE username=$1 OR email=$1",
-          [identifier]
-        );
+        const result = await db.query("SELECT * FROM users WHERE email=$1", [
+          email,
+        ]);
         if (result.rows.length === 0) {
           return cb(null, false, { message: "User Not Found" });
         } else {
@@ -167,8 +351,7 @@ passport.use(
     },
     async (accessToken, refreshToken, profile, cb) => {
       try {
-        console.log(profile);
-
+        // console.log(profile);
         // Check if user already exists
         const result = await db.query("SELECT * FROM users WHERE email = $1", [
           profile.email,
@@ -196,7 +379,10 @@ passport.serializeUser((user, cb) => {
 });
 passport.deserializeUser(async (id, cb) => {
   try {
-    const result = await db.query("SELECT * FROM users WHERE id = $1", [id]);
+    const result = await db.query(
+      "SELECT id,username FROM users WHERE id = $1",
+      [id]
+    );
 
     if (result.rows.length === 0) {
       return cb(null, false);
@@ -206,4 +392,7 @@ passport.deserializeUser(async (id, cb) => {
   } catch (err) {
     return cb(err);
   }
+});
+app.listen(port, () => {
+  console.log(`Server is running on port: ${port}`);
 });
